@@ -128,7 +128,7 @@ display:flex;flex-direction:column;align-items:center;justify-content:center;gap
     <textarea id="smart" style="min-height:190px" placeholder="Hier alles einfügen …"></textarea>
     <div class="row" style="margin-top:10px;flex-wrap:nowrap">
       <button class="sec" id="imgbtn" style="flex:none">Bild hinzufügen</button>
-      <label class="chk" style="flex:1"><input type="checkbox" id="rows" checked> Bild ist eine Tabelle</label>
+      <label class="chk" style="flex:1"><input type="checkbox" id="rows" checked> Tabelle (links Fremdsprache, rechts Deutsch)</label>
     </div>
     <input type="file" id="imgfile" accept="image/*" multiple class="hide">
     <p class="hint" id="ocrmsg" style="text-align:left;margin:6px 0 0"></p>
@@ -482,9 +482,19 @@ function loadTess(){return new Promise(function(res,rej){
 function tmo(ms){return new Promise(function(_,rej){setTimeout(function(){rej(new Error("timeout"))},ms)})}
 function prepImg(file){return new Promise(function(res,rej){
   var fr=new FileReader();fr.onerror=rej;fr.onload=function(){var im=new Image();im.onerror=rej;im.onload=function(){
-    var s=Math.min(1,2400/Math.max(im.width,im.height)),c=document.createElement("canvas");
+    var big=Math.max(im.width,im.height),s=big>2600?2600/big:(big<1700?1800/big:1),c=document.createElement("canvas");
     c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);
     var g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,c.width,c.height);g.drawImage(im,0,0,c.width,c.height);
+    try{
+      var id=g.getImageData(0,0,c.width,c.height),d=id.data,h=new Array(256).fill(0),i,n=c.width*c.height;
+      for(i=0;i<d.length;i+=4){var v=Math.round(d[i]*.299+d[i+1]*.587+d[i+2]*.114);d[i]=d[i+1]=d[i+2]=v;h[v]++}
+      var lo=0,hi=255,a=0;
+      while(lo<254&&(a+=h[lo])<n*.01)lo++;
+      a=0;while(hi>lo+20&&(a+=h[hi])<n*.01)hi--;
+      var k=255/Math.max(1,hi-lo);
+      for(i=0;i<d.length;i+=4){var q=Math.max(0,Math.min(255,(d[i]-lo)*k));d[i]=d[i+1]=d[i+2]=q}
+      g.putImageData(id,0,0);
+    }catch(e){}
     c.toBlob(function(b){b?res(b):rej()},"image/png")};im.src=fr.result};
   fr.readAsDataURL(file)})}
 function rowsFromWords(words){
@@ -501,6 +511,95 @@ function rowsFromWords(words){
     var t="";r.w.forEach(function(x,i){if(i){var gap=x.bbox.x0-r.w[i-1].bbox.x1;t+=gap>mh*1.5?"\t":" "}t+=x.text.trim()});
     return t}).join("\n");
 }
+/* TABLE START */
+function medianOf(a){a=a.slice().sort(function(x,y){return x-y});return a.length?a[Math.floor(a.length/2)]:0}
+function wordCx(x){return (x.bbox.x0+x.bbox.x1)/2}
+function wordCy(x){return (x.bbox.y0+x.bbox.y1)/2}
+function groupLines(ws,mh){
+  var w=ws.slice().sort(function(a,b){return wordCy(a)-wordCy(b)}),rows=[],cur=null;
+  w.forEach(function(x){var cy=wordCy(x);
+    if(cur&&Math.abs(cy-cur.cy)<=mh*.6){cur.w.push(x);cur.cy=(cur.cy*(cur.w.length-1)+cy)/cur.w.length}
+    else{cur={cy:cy,w:[x]};rows.push(cur)}});
+  return rows.map(function(r){
+    r.w.sort(function(a,b){return a.bbox.x0-b.bbox.x0});
+    return {cy:r.cy,x0:r.w[0].bbox.x0,text:r.w.map(function(x){return x.text.trim()}).join(" ").replace(/\t/g," ")}});
+}
+function colKind(lines,mh){
+  var words=0,num=0,br=0,sent=0,n=lines.length;
+  lines.forEach(function(l){
+    var t=l.text.split(/\s+/).filter(Boolean);words+=t.length;
+    t.forEach(function(x){if(/^\(?\d{1,3}[.):]?$/.test(x))num++;if(/^[\[(\/{]|[\])\/}]$|[ɐ-˿]/.test(x))br++});
+    if(t.length>6||(/[.!?]$/.test(l.text)&&t.length>=4))sent++;
+  });
+  if(!words)return "empty";
+  if(num/words>.6)return "num";
+  if(br/words>.5)return "phon";
+  if(sent/n>.5)return "sent";
+  return "text";
+}
+function pairColumns(A,B,mh){
+  var tol=mh*.8,cand=[];
+  A.forEach(function(a,i){B.forEach(function(b,j){var d=Math.abs(a.cy-b.cy);if(d<=tol)cand.push([d,i,j])})});
+  cand.sort(function(x,y){return x[0]-y[0]});
+  var ma={},mb={};
+  cand.forEach(function(c){if(ma[c[1]]===undefined&&mb[c[2]]===undefined){ma[c[1]]=c[2];mb[c[2]]=c[1]}});
+  function entries(L,matched){
+    var E=[],of=[],gapMax=mh*1.7;
+    L.forEach(function(l,i){of[i]=null;if(matched[i]!==undefined){var e={idx:i,cy:l.cy,lines:[l]};E.push(e);of[i]=e}});
+    var map={};E.forEach(function(e){map[e.idx]=e});
+    var i;
+    for(i=1;i<L.length;i++)if(!of[i]&&of[i-1]&&L[i].cy-L[i-1].cy<=gapMax){of[i]=of[i-1];of[i].lines.push(L[i])}
+    for(i=L.length-2;i>=0;i--)if(!of[i]&&of[i+1]&&L[i+1].cy-L[i].cy<=gapMax){of[i]=of[i+1];of[i].lines.push(L[i])}
+    E.forEach(function(e){e.lines.sort(function(x,y){return x.cy-y.cy});e.text=e.lines.map(function(l){return l.text}).join(" ")});
+    return {E:E,map:map};
+  }
+  var ea=entries(A,ma),eb=entries(B,mb),rows=[];
+  ea.E.forEach(function(e){var o=eb.map[ma[e.idx]];if(o)rows.push({ya:e.cy,yb:o.cy,a:e.text,b:o.text})});
+  rows.sort(function(x,y){return x.ya-y.ya});
+  var d=[];[A,B].forEach(function(L){for(var i=1;i<L.length;i++)d.push(L[i].cy-L[i-1].cy)});
+  d.sort(function(x,y){return x-y});
+  var p=d.length?d[Math.floor(d.length*.15)]:0,big=d.length&&d[d.length-1]>p*1.7;
+  if(p>=mh*.9&&big){
+    var m=[];rows.forEach(function(r){var l=m[m.length-1];
+      if(l&&r.ya-l.ya<=p*1.35&&r.yb-l.yb<=p*1.35){l.a+=" "+r.a;l.b+=" "+r.b;l.ya=r.ya;l.yb=r.yb}else m.push({ya:r.ya,yb:r.yb,a:r.a,b:r.b})});
+    rows=m;
+  }
+  return rows.map(function(r){return [r.ya,r.a,r.b]});
+}
+function tableFromWords(words){
+  var w=words.filter(function(x){return x.text&&/[A-Za-zÀ-ÿ0-9]/.test(x.text)&&x.bbox&&(x.confidence===undefined||x.confidence>=40)});
+  if(w.length<8)return "";
+  var mh=medianOf(w.map(function(x){return x.bbox.y1-x.bbox.y0}))||10;
+  var allLines=groupLines(w,mh);if(allLines.length<3)return "";
+  var minX=Math.min.apply(null,w.map(function(x){return x.bbox.x0})),maxX=Math.max.apply(null,w.map(function(x){return x.bbox.x1}));
+  var bw=Math.max(2,Math.round(mh/5)),nb=Math.ceil((maxX-minX)/bw)+2,cov=[],i;
+  for(i=0;i<nb;i++)cov.push(0);
+  w.forEach(function(x){var a=Math.floor((x.bbox.x0-minX)/bw),b=Math.floor((x.bbox.x1-minX)/bw);for(var k=a;k<=b;k++)cov[k]++});
+  var thr=Math.max(1,Math.floor(allLines.length*.08)),cuts=[],gaps=[],run=-1;
+  for(i=0;i<nb;i++){
+    if(cov[i]<=thr){if(run<0)run=i}
+    else{if(run>=0){if(run>0&&(i-run)*bw>=mh*1.4){cuts.push(minX+((run+i)/2)*bw);gaps.push([minX+run*bw,minX+i*bw])}run=-1}}
+  }
+  if(!cuts.length)return "";
+  w=w.filter(function(x){return !gaps.some(function(g){return x.bbox.x0>=g[0]&&x.bbox.x1<=g[1]})});
+  var cols=[];for(i=0;i<=cuts.length;i++)cols.push([]);
+  w.forEach(function(x){var c=wordCx(x),k=0;while(k<cuts.length&&c>cuts[k])k++;cols[k].push(x)});
+  var info=cols.map(function(cw){var L=groupLines(cw,mh);return {lines:L,kind:colKind(L,mh)}});
+  var maxL=Math.max.apply(null,info.map(function(c){return c.lines.length}));
+  var tc=info.filter(function(c){return c.kind==="text"&&c.lines.length>=Math.max(2,maxL*.25)});
+  if(tc.length<2)return "";
+  var out=[];
+  for(i=0;i+1<tc.length;i+=2){
+    pairColumns(tc[i].lines,tc[i+1].lines,mh).forEach(function(p){out.push(p[1]+"\t"+p[2])});
+  }
+  return out.join("\n");
+}
+/* TABLE END */
+function allWords(d){
+  if(d.words&&d.words.length)return d.words;
+  var o=[];try{(d.blocks||[]).forEach(function(b){(b.paragraphs||[]).forEach(function(p){(p.lines||[]).forEach(function(l){(l.words||[]).forEach(function(w){o.push(w)})})})})}catch(e){}
+  return o;
+}
 $("imgbtn").onclick=function(){$("imgfile").click()};
 $("imgfile").onchange=function(){
   var fl=Array.prototype.slice.call(this.files).slice(0,6);this.value="";if(!fl.length)return;
@@ -515,9 +614,9 @@ $("imgfile").onchange=function(){
         else if(/loading|initializ/.test(m.status||""))msg.textContent="Lade Erkennungsdaten …";
       }}),tmo(90000)]);
   }).then(function(w){
-    worker=w;var chain=Promise.resolve();
+    worker=w;var chain=Promise.resolve();try{w.setParameters({preserve_interword_spaces:"1"})}catch(e){}
     fl.forEach(function(f){chain=chain.then(function(){return prepImg(f)}).then(function(bl){return worker.recognize(bl)}).then(function(r){
-      var d=r.data,txt=($("rows").checked&&d.words&&d.words.length)?rowsFromWords(d.words):(d.text||"");
+      var d=r.data,ws=allWords(d),txt=($("rows").checked&&ws.length)?(tableFromWords(ws)||rowsFromWords(ws)):(d.text||"");
       if(txt.trim()){var ta=$("smart");ta.value=(ta.value.trim()?ta.value.replace(/\s+$/,"")+"\n":"")+txt.trim()}
       done++})});
     return chain;

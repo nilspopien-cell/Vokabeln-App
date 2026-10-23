@@ -7,7 +7,7 @@ Karteikarten-App zum Vokabellernen. Eine einzige Datei (`index.html`), keine Ins
 - Fortschritt pro Konto: richtig/falsch pro Karte, „gelernt“ nach 3 richtigen Antworten in Folge, Tagesserie, Modus „Nur schwache Karten üben“
 - Sprache wählen (Englisch, Spanisch, Französisch, Italienisch, Latein, andere); jede Sprache hat eigene Karten
 - Vokabeln einfügen: Text kopieren und einfügen, die App sucht Vokabeln heraus (ohne Nummern, Aussprache, Klammern, Beispielsätze, Uhrzeit)
-- Bild hinzufügen: Texterkennung im Browser (Tesseract.js), braucht Internet
+- Bild hinzufügen: Texterkennung im Browser (Tesseract.js, braucht Internet); erkennt Tabellenspalten (links Fremdsprache, rechts Deutsch), auch Doppelseiten, ignoriert Lautschrift- und Beispielsatz-Spalten und fügt umgebrochene Zeilen zusammen
 - Erkennungsmodi: automatisch, Wort und Übersetzung in einer Zeile, zwei Blöcke, abwechselnde Zeilen; Seiten tauschen
 - Karteikarten zum Umdrehen; nach rechts wischen = richtig, nach links = falsch
 - Einzelne Karten mit Bild, ändern und löschen
