@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Vokabeln">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#2b59c3">
+<title>Vokabeln</title>
+<link rel="apple-touch-icon" id="touch" href="">
+<link rel="manifest" id="manifest" href="">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#e9eef6;--ink:#14213d;--mut:#5d6b85;--pan:#fff;--line:#d0d9e8;--ok:#1f9d6b;--no:#d9455f;--ac:#2b59c3;--ac-t:#fff;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1729;--ink:#eaf0ff;--mut:#93a1c0;--pan:#1a2542;--line:#2b3a5f;--ok:#3ecf94;--no:#ff6b84;--ac:#6f95ff;--ac-t:#0f1729}}
+:root[data-theme="dark"]{--bg:#0f1729;--ink:#eaf0ff;--mut:#93a1c0;--pan:#1a2542;--line:#2b3a5f;--ok:#3ecf94;--no:#ff6b84;--ac:#6f95ff;--ac-t:#0f1729}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+main{max-width:520px;margin:0 auto;padding:16px}
+h1{font-size:1.5rem;margin:8px 0 12px}
+p{color:var(--mut);margin:0 0 12px;line-height:1.45}
+input[type=text],select{width:100%;border:2px solid var(--line);border-radius:12px;background:var(--pan);color:var(--ink);font:inherit;font-size:1rem;padding:11px 12px}
+textarea{width:100%;min-height:120px;border:2px solid var(--line);border-radius:12px;background:var(--pan);color:var(--ink);font:inherit;padding:11px 12px}
+input:focus,textarea:focus,select:focus,button:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
+button{font:inherit;font-weight:700;border:0;border-radius:12px;padding:12px 16px;cursor:pointer;background:var(--ac);color:var(--ac-t)}
+button.sec{background:transparent;color:var(--ink);border:2px solid var(--line)}
+button.sm{padding:7px 11px;font-size:.85rem}
+button:disabled{opacity:.4}
+.panel{background:var(--pan);border:2px solid var(--line);border-radius:16px;padding:14px;margin-bottom:14px}
+.panel input{margin-bottom:10px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.row>*{flex:1 1 auto}
+.thumb{width:56px;height:56px;border-radius:8px;object-fit:cover;border:2px solid var(--line);flex:none}
+.item{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.item .t{flex:1;min-width:0;overflow-wrap:anywhere}
+.item .t b{display:block}.item .t span{color:var(--mut);font-size:.9rem}
+label.chk{display:flex;gap:8px;align-items:center;color:var(--mut);flex:none}
+details{margin-bottom:14px;color:var(--mut)}summary{cursor:pointer;margin-bottom:8px}
+.hide{display:none!important}
+.top{display:flex;justify-content:space-between;align-items:center;color:var(--mut);font-size:.95rem;margin-bottom:10px}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-bottom:22px}
+.bar i{display:block;height:100%;width:0;background:var(--ac);transition:width .25s}
+/* Karteikarten */
+.stage{position:relative;height:min(56vh,420px);perspective:1100px;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.stage:before,.stage:after{content:"";position:absolute;inset:0;background:#f4f1e6;border:1px solid #c9c4b0;border-radius:8px;z-index:0}
+.stage:before{transform:translate(5px,7px) rotate(1.6deg)}
+.stage:after{transform:translate(-4px,4px) rotate(-1.2deg)}
+.card{position:absolute;inset:0;z-index:1;cursor:grab;transition:transform .25s,opacity .25s}
+.card.drag{transition:none;cursor:grabbing}
+.in{position:absolute;inset:0;transition:transform .5s;transform-style:preserve-3d}
+.flip .in{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:8px;border:1px solid #c9c4b0;box-shadow:0 10px 22px rgba(10,20,40,.22);color:#1d2a44;
+background:linear-gradient(#e0475f,#e0475f) 0 54px/100% 2px no-repeat,repeating-linear-gradient(to bottom,transparent 0 33px,#c3d4ee 33px 34px) 0 56px/100% 100% no-repeat,#fffef8;
+display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:64px 22px 30px;text-align:center;overflow:hidden}
+.face .tx{font-family:"Caveat","Segoe Print","Bradley Hand",cursive;font-weight:700;font-size:clamp(2.1rem,10vw,3.1rem);line-height:1.1;overflow-wrap:anywhere}
+.face img{max-width:100%;max-height:52%;object-fit:contain;border-radius:4px;border:1px solid #d9d4c0;pointer-events:none;-webkit-user-drag:none}
+.face small{position:absolute;top:14px;left:0;right:0;font-size:.78rem;color:#8a8672;font-weight:500}
+.back{transform:rotateY(180deg)}
+.stamp{position:absolute;top:70px;z-index:3;font-weight:700;font-size:1.2rem;padding:4px 12px;border:3px solid;border-radius:10px;opacity:0;pointer-events:none;background:#fffef8}
+.s-ok{right:16px;color:#1f9d6b;transform:rotate(8deg)}
+.s-no{left:16px;color:#d9455f;transform:rotate(-8deg)}
+.acts{display:flex;gap:14px;margin-top:26px}
+.acts button{flex:1;font-size:1.05rem;color:#fff}
+.b-no{background:var(--no)}.b-ok{background:var(--ok)}
+.hint{text-align:center;color:var(--mut);font-size:.85rem;margin-top:12px}
+.big{font-size:3rem;font-weight:700;margin:18px 0 4px}
+</style>
+</head>
+<body>
+<main>
+<section id="v-list">
+  <h1>Meine Karteikarten</h1>
+  <div class="panel">
+    <b>Sprache</b>
+    <select id="lang" aria-label="Sprache" style="margin-top:8px">
+      <option>Englisch</option><option>Spanisch</option><option>Französisch</option><option>Italienisch</option><option>Latein</option><option value="Andere">Andere Sprache</option>
+    </select>
+  </div>
+  <div class="panel">
+    <b>Vokabeln einfügen</b>
+    <p style="margin-top:6px">Kopiere alles auf einmal hinein oder füge ein Bild hinzu, auch mit Nummern, Lautschrift oder Beispielsätzen. Die App sucht die Vokabeln heraus und macht Karten daraus.</p>
+    <textarea id="smart" style="min-height:190px" placeholder="Hier alles einfügen …"></textarea>
+    <div class="row" style="margin-top:10px;flex-wrap:nowrap">
+      <button class="sec" id="imgbtn" style="flex:none">Bild hinzufügen</button>
+      <label class="chk" style="flex:1"><input type="checkbox" id="rows" checked> Bild ist eine Tabelle</label>
+    </div>
+    <input type="file" id="imgfile" accept="image/*" multiple class="hide">
+    <p class="hint" id="ocrmsg" style="text-align:left;margin:6px 0 0"></p>
+    <div class="row" style="margin-top:10px;flex-wrap:nowrap">
+      <select id="mode" aria-label="Erkennung" style="flex:1 1 auto;min-width:0">
+        <option value="auto">Automatisch erkennen</option>
+        <option value="sep">Wort und Übersetzung in einer Zeile</option>
+        <option value="half">Zwei Blöcke untereinander</option>
+        <option value="alt">Abwechselnde Zeilen</option>
+      </select>
+      <button class="sec" id="swap" style="flex:none">Seiten tauschen</button>
+    </div>
+    <label class="chk hide"><input type="checkbox" id="strip" checked></label>
+    <p id="smsg" style="margin:10px 0 0;font-weight:700"></p>
+    <div id="pairs" style="margin-top:8px"></div>
+    <button id="smake" style="width:100%;margin-top:10px" disabled>Karteikarten erstellen</button>
+    <p class="hint" style="text-align:left">Tipp: Auf dem iPhone kannst du in einem Foto oder Screenshot den Text lange antippen, markieren und kopieren, und ihn dann hier einfügen.</p>
+  </div>
+  <details>
+    <summary>Einzelne Karte hinzufügen (auch mit Bild)</summary>
+  <div class="panel">
+    <input type="text" id="fw" placeholder="Vokabel (z. B. house)" aria-label="Vokabel" autocomplete="off">
+    <input type="text" id="bw" placeholder="Übersetzung (z. B. Haus)" aria-label="Übersetzung" autocomplete="off">
+    <div class="row" style="margin-bottom:10px">
+      <button class="sec" id="pick" style="flex:none">Bild hinzufügen</button>
+      <img id="prev" class="thumb hide" alt="Vorschau">
+      <button class="sec sm hide" id="rmimg" style="flex:none">Bild entfernen</button>
+    </div>
+    <input type="file" id="file" accept="image/*" class="hide">
+    <select id="side" aria-label="Bild auf Seite" class="hide" style="margin-bottom:10px">
+      <option value="b">Bild auf die Rückseite (bei der Übersetzung)</option>
+      <option value="f">Bild auf die Vorderseite (bei der Vokabel)</option>
+    </select>
+    <div class="row">
+      <button id="add">Karte speichern</button>
+      <button class="sec hide" id="cancel" style="flex:none">Abbrechen</button>
+    </div>
+  </div>
+  </details>
+  <div class="panel" id="listbox">
+    <div class="row" style="justify-content:space-between"><b id="count">0 Karten</b>
+      <label class="chk"><input type="checkbox" id="rev"> Richtung tauschen</label></div>
+    <div id="items"></div>
+    <div class="row" style="margin-top:10px"><button class="sec sm" id="clear" style="flex:none">Alle Karten löschen</button></div>
+  </div>
+  <button id="start" style="width:100%;font-size:1.05rem">Lernen starten</button>
+  <p class="hint" id="note"></p>
+</section>
+
+<section id="v-learn" class="hide">
+  <div class="top"><span id="prog"></span><button class="sec sm" id="stop">Beenden</button></div>
+  <div class="bar"><i id="barfill"></i></div>
+  <div class="stage" id="stage">
+    <div class="card" id="card">
+      <div class="stamp s-no" id="sno">Falsch</div>
+      <div class="stamp s-ok" id="sok">Richtig</div>
+      <div class="in">
+        <div class="face" id="front"></div>
+        <div class="face back" id="back"></div>
+      </div>
+    </div>
+  </div>
+  <div class="acts">
+    <button class="b-no" id="bno">Falsch</button>
+    <button class="b-ok" id="bok">Richtig</button>
+  </div>
+  <p class="hint">Karte antippen zum Umdrehen. Nach links wischen: falsch. Nach rechts: richtig.</p>
+</section>
+
+<section id="v-end" class="hide" style="text-align:center">
+  <div class="big">Geschafft</div>
+  <p id="res"></p>
+  <div class="row" style="justify-content:center">
+    <button id="again">Nur Falsche wiederholen</button>
+    <button class="sec" id="all">Alle neu lernen</button>
+    <button class="sec" id="edit">Karten bearbeiten</button>
+  </div>
+</section>
+</main>
+
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)};
+var cards=[],queue=[],wrong=[],set=[],total=0,done=0,okN=0,flipped=false,busy=false,curImg="",editId=null,mem={},lang="Englisch",LANGS=["Englisch","Spanisch","Französisch","Italienisch","Latein","Andere"];
+
+/* Speicher: IndexedDB mit Fallback */
+function dbo(){return new Promise(function(res,rej){try{var r=indexedDB.open("vokabeln",1);r.onupgradeneeded=function(){r.result.createObjectStore("kv")};r.onsuccess=function(){res(r.result)};r.onerror=function(){rej()}}catch(e){rej(e)}})}
+function kvGet(k){return dbo().then(function(d){return new Promise(function(res){var q=d.transaction("kv").objectStore("kv").get(k);q.onsuccess=function(){res(q.result)};q.onerror=function(){res(mem[k])}})}).catch(function(){return mem[k]})}
+function kvSet(k,v){mem[k]=v;return dbo().then(function(d){d.transaction("kv","readwrite").objectStore("kv").put(v,k)}).catch(function(){})}
+function persist(){kvSet("cards",cards)}
+function cur(){return cards.filter(function(c){return c.lang===lang})}
+function lname(){return lang==="Andere"?"Fremdsprache":lang}
+function labels(){}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+
+/* Bild verkleinern */
+function shrink(file){return new Promise(function(res){
+  var fr=new FileReader();fr.onload=function(){var im=new Image();im.onload=function(){
+    var m=900,s=Math.min(1,m/Math.max(im.width,im.height)),c=document.createElement("canvas");
+    c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);
+    c.getContext("2d").drawImage(im,0,0,c.width,c.height);res(c.toDataURL("image/jpeg",.72))};im.src=fr.result};
+  fr.readAsDataURL(file)})}
+
+/* Editor */
+function setImg(u){curImg=u||"";$("prev").src=curImg;$("prev").classList.toggle("hide",!curImg);$("rmimg").classList.toggle("hide",!curImg);$("side").classList.toggle("hide",!curImg);$("pick").textContent=curImg?"Anderes Bild":"Bild hinzufügen"}
+function resetForm(){editId=null;$("fw").value="";$("bw").value="";$("side").value="b";setImg("");$("add").textContent="Karte speichern";$("cancel").classList.add("hide")}
+$("pick").onclick=function(){$("file").click()};
+$("file").onchange=function(){var f=this.files[0];if(!f)return;shrink(f).then(setImg);this.value=""};
+$("rmimg").onclick=function(){setImg("")};
+$("cancel").onclick=resetForm;
+$("add").onclick=function(){
+  var f=$("fw").value.trim(),b=$("bw").value.trim();
+  if(!f||!b){(f?$("bw"):$("fw")).focus();return}
+  var c={id:editId||uid(),f:f,b:b,img:curImg,side:$("side").value,lang:lang};
+  if(editId){cards=cards.map(function(x){return x.id===editId?c:x})}else cards.push(c);
+  persist();resetForm();render();$("fw").focus();
+};
+$("clear").onclick=function(){if(confirm("Wirklich alle "+lname()+"-Karten löschen?")){cards=cards.filter(function(c){return c.lang!==lang});persist();resetForm();render()}};
+$("lang").onchange=function(){lang=this.value;kvSet("lang",lang);labels();resetForm();render()};
+function render(){
+  var L=cur();$("count").textContent=L.length+(L.length===1?" Karte":" Karten")+" ("+lname()+")";
+  $("listbox").classList.toggle("hide",!L.length);
+  $("start").disabled=!L.length;
+  $("note").textContent=L.length?"":"Lege zuerst mindestens eine Karte an.";
+  var box=$("items");box.innerHTML="";
+  L.forEach(function(c){
+    var d=document.createElement("div");d.className="item";
+    if(c.img){var im=document.createElement("img");im.className="thumb";im.src=c.img;im.alt="";d.appendChild(im)}
+    var t=document.createElement("div");t.className="t";
+    var b=document.createElement("b");b.textContent=c.f;var s=document.createElement("span");s.textContent=c.b;
+    t.appendChild(b);t.appendChild(s);d.appendChild(t);
+    var e=document.createElement("button");e.className="sec sm";e.textContent="Ändern";
+    e.onclick=function(){editId=c.id;$("fw").value=c.f;$("bw").value=c.b;$("side").value=c.side||"b";setImg(c.img);$("add").textContent="Änderung speichern";$("cancel").classList.remove("hide");window.scrollTo(0,0)};
+    var x=document.createElement("button");x.className="sec sm";x.textContent="Löschen";
+    x.onclick=function(){cards=cards.filter(function(k){return k.id!==c.id});persist();if(editId===c.id)resetForm();render()};
+    d.appendChild(e);d.appendChild(x);box.appendChild(d);
+  });
+}
+function show(id){["v-list","v-learn","v-end"].forEach(function(s){$(s).classList.toggle("hide",s!==id)});window.scrollTo(0,0)}
+function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
+
+/* Lernen */
+function view(c,r){
+  var s=c.side||"b";
+  return r?{f:c.b,b:c.f,imgF:c.img&&s==="b"?c.img:"",imgB:c.img&&s==="f"?c.img:""}
+          :{f:c.f,b:c.b,imgF:c.img&&s==="f"?c.img:"",imgB:c.img&&s==="b"?c.img:""};
+}
+function fill(el,txt,img,hint){
+  el.innerHTML="";
+  if(hint){var s=document.createElement("small");s.textContent=hint;el.appendChild(s)}
+  if(img){var i=document.createElement("img");i.src=img;i.alt="";i.draggable=false;el.appendChild(i)}
+  var t=document.createElement("div");t.className="tx";t.textContent=txt;el.appendChild(t);
+}
+function begin(list){
+  set=list;queue=shuffle(list);wrong=[];total=queue.length;done=0;okN=0;show("v-learn");next();
+}
+function next(){
+  if(!queue.length)return finish();
+  var c=view(queue[0],$("rev").checked);flipped=false;busy=false;
+  var el=$("card");el.classList.remove("flip");el.style.transition="none";el.style.transform="";el.style.opacity="1";
+  void el.offsetWidth;el.style.transition="";
+  fill($("front"),c.f,c.imgF,"antippen zum Umdrehen");fill($("back"),c.b,c.imgB,"");
+  $("prog").textContent=(done+1)+" von "+total;
+  $("barfill").style.width=(done/total*100)+"%";
+  $("sok").style.opacity=0;$("sno").style.opacity=0;
+}
+function answer(ok){
+  if(busy||!queue.length)return;busy=true;
+  var c=queue.shift();if(ok)okN++;else wrong.push(c);done++;
+  var el=$("card");el.classList.remove("drag");
+  el.style.transform="translateX("+(ok?1:-1)*window.innerWidth+"px) rotate("+(ok?25:-25)+"deg)";el.style.opacity="0";
+  setTimeout(next,240);
+}
+function finish(){
+  $("barfill").style.width="100%";show("v-end");
+  $("res").textContent=okN+" von "+total+" richtig"+(wrong.length?" – "+wrong.length+" noch offen.":". Alle gewusst!");
+  $("again").classList.toggle("hide",!wrong.length);
+}
+function flip(){if(busy)return;flipped=!flipped;$("card").classList.toggle("flip",flipped)}
+
+var sx=0,dx=0,down=false,moved=false,card=$("card");
+card.addEventListener("pointerdown",function(e){if(busy)return;down=true;moved=false;sx=e.clientX;dx=0;card.classList.add("drag");card.setPointerCapture(e.pointerId)});
+card.addEventListener("pointermove",function(e){
+  if(!down)return;dx=e.clientX-sx;if(Math.abs(dx)>8)moved=true;
+  card.style.transform="translateX("+dx+"px) rotate("+dx/18+"deg)";
+  var p=Math.min(Math.abs(dx)/90,1);$("sok").style.opacity=dx>0?p:0;$("sno").style.opacity=dx<0?p:0;
+});
+card.addEventListener("pointerup",function(){
+  if(!down)return;down=false;card.classList.remove("drag");
+  if(dx>100)answer(true);else if(dx<-100)answer(false);
+  else{card.style.transform="";$("sok").style.opacity=0;$("sno").style.opacity=0;if(!moved)flip()}
+});
+card.addEventListener("pointercancel",function(){down=false;card.classList.remove("drag");card.style.transform=""});
+document.addEventListener("keydown",function(e){
+  if($("v-learn").classList.contains("hide"))return;
+  if(e.key==="ArrowRight")answer(true);else if(e.key==="ArrowLeft")answer(false);
+  else if(e.key===" "||e.key==="ArrowUp"||e.key==="ArrowDown"){e.preventDefault();flip()}
+});
+$("start").onclick=function(){var L=cur();if(L.length)begin(L)};
+$("bok").onclick=function(){answer(true)};
+$("bno").onclick=function(){answer(false)};
+$("stop").onclick=function(){show("v-list")};
+$("again").onclick=function(){begin(wrong)};
+$("all").onclick=function(){begin(cur())};
+$("edit").onclick=function(){show("v-list")};
+
+/* PARSER START */
+var DE={};("der die das den dem des ein eine einen einem einer eines und oder nicht sich ist sind war wird werden zu zum zur mit von vor bei auf aus für über unter nach im in am an um auch noch nur sehr man es er sie wir ihr ich du mein dein sein kein haben machen gehen kommen können müssen wollen etwas jemand jemanden jemandem etw jdn jdm").split(" ").forEach(function(w){DE[w]=1});
+function gScore(t){
+  var s=0,w=t.toLowerCase().split(/[^a-zäöüß]+/).filter(Boolean);
+  if(/[äöüß]/i.test(t))s+=3;
+  w.forEach(function(x){if(DE[x])s+=2;if(/(ung|keit|heit|schaft|lich|chen)$/.test(x))s+=1});
+  if(/^[A-ZÄÖÜ]/.test(t))s+=.5;
+  return s;
+}
+function cleanLine(l){
+  l=l.replace(/[\u00a0\u200b]/g," ");
+  l=l.replace(/\b\d{1,2}[:.]\d{2}\b(?:\s*(?:uhr|am|pm))?/gi,"");
+  l=l.replace(/\b\d{1,3}\s?%/g,"");
+  l=l.replace(/(^|\s)(?:lte|5g|4g|3g|wlan|wi-?fi)(?=\s|$)/gi,"$1");
+  l=l.split(/(\s+)/).filter(function(t){return !/[\u0250-\u02ff\u1d00-\u1dbf]/.test(t)}).join("");
+  l=l.replace(/[©®™§~_«»¦¬°▪■□●○◆◇▶►]/g,"");
+  l=l.replace(/\s*[(\[{][^)\]}]*[)\]}]/g,"");
+  l=l.replace(/\s*[(\[{][^)\]}]*$/,"");
+  l=l.replace(/[)\]}]/g,"");
+  l=l.replace(/(^|\s)\/[^\/]+\/(?=\s|$)/g,"$1");
+  l=l.replace(/^\s*(?:[•·*]\s*|[-–—]\s+|\(?\d{1,3}[.):]\s+)/,"");
+  return l.trim();
+}
+function wc(t){return t.split(/\s+/).filter(Boolean).length}
+function tidy(t){return t.replace(/^\d+\s+/,"").replace(/\s+\d+$/,"").replace(/^[^A-Za-zÀ-ÿ¿¡(]+|[^A-Za-zÀ-ÿ.!?)]+$/g,"").trim()}
+function okPart(t){var L=(t.match(/[A-Za-zÀ-ÿ]/g)||[]).length;return L>=2&&wc(t)<=6&&!/\d{2,}/.test(t)&&!(/[.!?]$/.test(t)&&wc(t)>=4)}
+function isNoise(l){
+  if(!l||!/[A-Za-zÀ-ÿ]/.test(l))return true;
+  if(/^(seite|page|unit|lektion|lesson|kapitel|chapter|modul|module|vokabeln|vocabulary|wortschatz)\b/i.test(l)&&l.length<=30)return true;
+  return false;
+}
+function isSentence(l){return wc(l)>7||(/[.!?]$/.test(l)&&wc(l)>=4)}
+function splitLine(l){
+  var seps=[/\t+/,/\s*(?:=>|=|→|->|\|)\s*/,/\s+[–—-]\s+/,/\s+:\s+/,/\s*;\s*/,/\s{2,}/];
+  for(var i=0;i<seps.length;i++){
+    var p=l.split(seps[i]).map(function(x){return x.trim()}).filter(Boolean);
+    if(p.length>=2)return [p[0],p[1]];
+  }
+  return null;
+}
+function gSum(a){var t=0;a.forEach(function(x){t+=gScore(x)});return t}
+function analyze(text,mode,strip){
+  var cl=text.split("\n").map(cleanLine).filter(function(l){return !isNoise(l)});
+  var out={pairs:[],mode:"",left:0};
+  if(!cl.length)return out;
+  var sp=cl.map(splitLine),nsep=sp.filter(Boolean).length,pairs=[];
+  if(mode==="auto")mode=nsep>=cl.length*.5?"sep":"block";
+  if(mode==="sep"){
+    pairs=sp.filter(Boolean);out.mode="sep";
+  }else{
+    var arr=cl.filter(function(l){return !isSentence(l)}),n=Math.floor(arr.length/2);
+    if(n<1)return out;
+    var A=arr.slice(0,n),B=arr.slice(arr.length-n),E=[],O=[];
+    arr.forEach(function(x,i){if(i<n*2){(i%2?O:E).push(x)}});
+    if(mode==="block"){
+      var h=Math.abs(gSum(B)-gSum(A))/n,al=Math.abs(gSum(O)-gSum(E))/n;
+      mode=al>h*1.2?"alt":"half";
+    }
+    if(mode==="alt"){A=E;B=O;out.mode="alt"}else out.mode="half";
+    for(var i=0;i<n;i++)pairs.push([A[i],B[i]]);
+    out.left=arr.length-n*2;
+  }
+  var gl=0,gr=0;pairs.forEach(function(p){gl+=gScore(p[0]);gr+=gScore(p[1])});
+  if(gl>gr)pairs=pairs.map(function(p){return [p[1],p[0]]});
+  var seen={};
+  out.pairs=pairs.map(function(p){return p.map(function(t){
+    var f=tidy(t);
+    if(strip){var g=tidy(f.replace(/\s*\([^)]*\)/g,""));if(g)f=g}
+    return f})}).filter(function(p){
+    if(!okPart(p[0])||!okPart(p[1]))return false;
+    var k=(p[0]+"|"+p[1]).toLowerCase();if(seen[k])return false;seen[k]=1;return true});
+  return out;
+}
+/* PARSER END */
+var MODES={sep:"Wort und Übersetzung in einer Zeile",half:"zwei Blöcke untereinander",alt:"abwechselnde Zeilen"};
+function showPairs(pr){
+  var box=$("pairs");box.innerHTML="";
+  pr.forEach(function(x){
+    var r=document.createElement("div");r.className="row";r.style.marginBottom="8px";r.style.flexWrap="nowrap";
+    var a=document.createElement("input"),b=document.createElement("input");
+    a.type=b.type="text";a.value=x[0];b.value=x[1];a.style.minWidth=b.style.minWidth="0";a.style.marginBottom=b.style.marginBottom="0";
+    var d=document.createElement("button");d.className="sec sm";d.textContent="✕";d.style.flex="none";d.setAttribute("aria-label","Entfernen");
+    d.onclick=function(){r.remove();cnt()};
+    r.appendChild(a);r.appendChild(b);r.appendChild(d);box.appendChild(r);
+  });
+  cnt();
+}
+function cnt(){$("smake").disabled=!$("pairs").children.length}
+function smartRun(){
+  var t=$("smart").value;
+  if(!t.trim()){$("pairs").innerHTML="";$("smsg").style.color="";$("smsg").textContent="";cnt();return}
+  var r=analyze(t,$("mode").value,$("strip").checked);
+  showPairs(r.pairs);
+  var m=$("smsg");
+  if(!r.pairs.length){m.style.color="var(--no)";m.textContent="Ich habe noch keine Vokabeln gefunden. Wähle oben eine andere Erkennung.";return}
+  m.style.color="var(--ok)";
+  m.textContent="Erkannt: "+MODES[r.mode]+" – "+r.pairs.length+" Paare. Bitte kurz prüfen."+(r.left?" ("+r.left+" Zeile ohne Gegenstück ignoriert.)":"");
+}
+$("smart").addEventListener("input",smartRun);
+$("mode").addEventListener("change",smartRun);
+$("strip").addEventListener("change",smartRun);
+$("swap").onclick=function(){
+  Array.prototype.forEach.call($("pairs").children,function(r){var i=r.getElementsByTagName("input"),t=i[0].value;i[0].value=i[1].value;i[1].value=t});
+};
+$("smake").onclick=function(){
+  var n=0;Array.prototype.forEach.call($("pairs").children,function(r){
+    var i=r.getElementsByTagName("input"),f=i[0].value.trim(),b=i[1].value.trim();
+    if(f&&b){cards.push({id:uid(),f:f,b:b,img:"",side:"b",lang:lang});n++}});
+  if(!n)return;
+  persist();render();$("smart").value="";$("pairs").innerHTML="";cnt();
+  $("smsg").style.color="var(--ok)";$("smsg").textContent=n+" Karteikarten erstellt.";
+};
+
+/* Bild-Erkennung direkt in der App (Tesseract, ohne Claude) */
+var OCRV="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/";
+var OL={Englisch:"eng",Spanisch:"spa",Französisch:"fra",Italienisch:"ita",Latein:"lat",Andere:"eng"};
+function loadTess(){return new Promise(function(res,rej){
+  if(window.Tesseract)return res(window.Tesseract);
+  var sc=document.createElement("script");sc.src=OCRV+"tesseract.min.js";
+  sc.onload=function(){window.Tesseract?res(window.Tesseract):rej(new Error("x"))};
+  sc.onerror=function(){rej(new Error("load"))};document.head.appendChild(sc)})}
+function tmo(ms){return new Promise(function(_,rej){setTimeout(function(){rej(new Error("timeout"))},ms)})}
+function prepImg(file){return new Promise(function(res,rej){
+  var fr=new FileReader();fr.onerror=rej;fr.onload=function(){var im=new Image();im.onerror=rej;im.onload=function(){
+    var s=Math.min(1,2400/Math.max(im.width,im.height)),c=document.createElement("canvas");
+    c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);
+    var g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,c.width,c.height);g.drawImage(im,0,0,c.width,c.height);
+    c.toBlob(function(b){b?res(b):rej()},"image/png")};im.src=fr.result};
+  fr.readAsDataURL(file)})}
+function rowsFromWords(words){
+  var w=words.filter(function(x){return x.text&&/[A-Za-zÀ-ÿ0-9]/.test(x.text)&&x.bbox&&(x.confidence===undefined||x.confidence>=40)});
+  if(!w.length)return "";
+  var hs=w.map(function(x){return x.bbox.y1-x.bbox.y0}).sort(function(a,b){return a-b}),mh=hs[Math.floor(hs.length/2)]||10;
+  w.sort(function(a,b){return (a.bbox.y0+a.bbox.y1)-(b.bbox.y0+b.bbox.y1)});
+  var rows=[],cur=null;
+  w.forEach(function(x){var cy=(x.bbox.y0+x.bbox.y1)/2;
+    if(cur&&Math.abs(cy-cur.cy)<=mh*.6){cur.w.push(x);cur.cy=(cur.cy*(cur.w.length-1)+cy)/cur.w.length}
+    else{cur={cy:cy,w:[x]};rows.push(cur)}});
+  return rows.map(function(r){
+    r.w.sort(function(a,b){return a.bbox.x0-b.bbox.x0});
+    var t="";r.w.forEach(function(x,i){if(i){var gap=x.bbox.x0-r.w[i-1].bbox.x1;t+=gap>mh*1.5?"\t":" "}t+=x.text.trim()});
+    return t}).join("\n");
+}
+$("imgbtn").onclick=function(){$("imgfile").click()};
+$("imgfile").onchange=function(){
+  var fl=Array.prototype.slice.call(this.files).slice(0,6);this.value="";if(!fl.length)return;
+  var msg=$("ocrmsg"),worker=null,done=0;
+  $("imgbtn").disabled=true;msg.style.color="";msg.textContent="Texterkennung wird geladen … beim ersten Mal dauert das etwas.";
+  loadTess().then(function(T){
+    return Promise.race([T.createWorker(OL[lang]+"+deu",1,{
+      workerPath:OCRV+"worker.min.js",
+      corePath:"https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.0",
+      logger:function(m){
+        if(m.status==="recognizing text")msg.textContent="Lese Bild "+(done+1)+" von "+fl.length+" … "+Math.round(m.progress*100)+" %";
+        else if(/loading|initializ/.test(m.status||""))msg.textContent="Lade Erkennungsdaten …";
+      }}),tmo(90000)]);
+  }).then(function(w){
+    worker=w;var chain=Promise.resolve();
+    fl.forEach(function(f){chain=chain.then(function(){return prepImg(f)}).then(function(bl){return worker.recognize(bl)}).then(function(r){
+      var d=r.data,txt=($("rows").checked&&d.words&&d.words.length)?rowsFromWords(d.words):(d.text||"");
+      if(txt.trim()){var ta=$("smart");ta.value=(ta.value.trim()?ta.value.replace(/\s+$/,"")+"\n":"")+txt.trim()}
+      done++})});
+    return chain;
+  }).then(function(){
+    smartRun();msg.style.color="var(--ok)";msg.textContent="Bild gelesen. Prüfe unten die erkannten Karten und korrigiere den Text oben bei Bedarf."
+  }).catch(function(){
+    msg.style.color="var(--no)";msg.textContent="Die Texterkennung hat nicht geklappt. Sie braucht Internet und läuft nur auf deiner eigenen Website, nicht im Claude-Link."
+  }).then(function(){$("imgbtn").disabled=false;if(worker){try{worker.terminate()}catch(e){}}});
+};
+
+/* Home-Bildschirm: Icon und Manifest zur Laufzeit erzeugen */
+try{
+  var c=document.createElement("canvas");c.width=c.height=192;var g=c.getContext("2d");
+  g.fillStyle="#2b59c3";g.fillRect(0,0,192,192);
+  g.save();g.translate(96,100);g.rotate(-.08);g.fillStyle="#fffef8";g.fillRect(-62,-44,124,88);
+  g.fillStyle="#e0475f";g.fillRect(-62,-26,124,3);g.fillStyle="#c3d4ee";
+  for(var y=-8;y<40;y+=16)g.fillRect(-62,y,124,2);g.restore();
+  var png=c.toDataURL("image/png");$("touch").href=png;
+  var mf={name:"Vokabeln",short_name:"Vokabeln",display:"standalone",background_color:"#2b59c3",theme_color:"#2b59c3",start_url:location.href,icons:[{src:png,sizes:"192x192",type:"image/png"}]};
+  $("manifest").href=URL.createObjectURL(new Blob([JSON.stringify(mf)],{type:"application/manifest+json"}));
+}catch(e){}
+
+/* Start: Daten laden, ggf. alte Liste übernehmen */
+kvGet("cards").then(function(d){
+  cards=Array.isArray(d)?d:[];
+  if(!cards.length){try{var old=localStorage.getItem("vokabeln-liste-v1");if(old){old.split("\n").forEach(function(l){var m=l.split(/\s*(?:=|;|\t| - | – )\s*/);if(m.length>1&&m[0].trim()&&m[1].trim())cards.push({id:uid(),f:m[0].trim(),b:m.slice(1).join(" = ").trim(),img:"",side:"b"})});if(cards.length)persist()}}catch(e){}}
+  cards.forEach(function(c){if(!c.lang)c.lang="Englisch"});
+  return kvGet("lang");
+}).then(function(l){
+  if(l&&LANGS.indexOf(l)>-1)lang=l;
+  $("lang").value=lang;labels();render();bulkInfo();
+});
+})();
+</script>
+</body>
+</html>
