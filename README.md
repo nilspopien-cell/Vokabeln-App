@@ -3,6 +3,8 @@
 Karteikarten-App zum Vokabellernen. Eine einzige Datei (`index.html`), keine Installation nötig.
 
 ## Funktionen
+- Anmeldung: Konto erstellen (Name, E-Mail, Passwort) oder anmelden. Konten liegen nur lokal im Browser, das Passwort wird als PBKDF2-Hash gespeichert; keine Anmeldung auf anderen Geräten, kein Zurücksetzen
+- Fortschritt pro Konto: richtig/falsch pro Karte, „gelernt“ nach 3 richtigen Antworten in Folge, Tagesserie, Modus „Nur schwache Karten üben“
 - Sprache wählen (Englisch, Spanisch, Französisch, Italienisch, Latein, andere); jede Sprache hat eigene Karten
 - Vokabeln einfügen: Text kopieren und einfügen, die App sucht Vokabeln heraus (ohne Nummern, Aussprache, Klammern, Beispielsätze, Uhrzeit)
 - Bild hinzufügen: Texterkennung im Browser (Tesseract.js), braucht Internet

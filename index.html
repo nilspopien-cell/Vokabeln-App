@@ -23,7 +23,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Bricolage Grote
 main{max-width:520px;margin:0 auto;padding:16px}
 h1{font-size:1.5rem;margin:8px 0 12px}
 p{color:var(--mut);margin:0 0 12px;line-height:1.45}
-input[type=text],select{width:100%;border:2px solid var(--line);border-radius:12px;background:var(--pan);color:var(--ink);font:inherit;font-size:1rem;padding:11px 12px}
+input[type=text],input[type=email],input[type=password],select{width:100%;border:2px solid var(--line);border-radius:12px;background:var(--pan);color:var(--ink);font:inherit;font-size:1rem;padding:11px 12px}
 textarea{width:100%;min-height:120px;border:2px solid var(--line);border-radius:12px;background:var(--pan);color:var(--ink);font:inherit;padding:11px 12px}
 input:focus,textarea:focus,select:focus,button:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
 button{font:inherit;font-weight:700;border:0;border-radius:12px;padding:12px 16px;cursor:pointer;background:var(--ac);color:var(--ac-t)}
@@ -68,12 +68,54 @@ display:flex;flex-direction:column;align-items:center;justify-content:center;gap
 .b-no{background:var(--no)}.b-ok{background:var(--ok)}
 .hint{text-align:center;color:var(--mut);font-size:.85rem;margin-top:12px}
 .big{font-size:3rem;font-weight:700;margin:18px 0 4px}
+.tabs{display:flex;gap:8px;margin-bottom:14px}
+.tabs button{flex:1;background:transparent;color:var(--ink);border:2px solid var(--line)}
+.tabs button.on{background:var(--ac);color:var(--ac-t);border-color:var(--ac)}
+.logo{width:64px;height:48px;margin:18px auto 6px;border-radius:6px;border:1px solid #c9c4b0;background:linear-gradient(#e0475f,#e0475f) 0 14px/100% 2px no-repeat,repeating-linear-gradient(to bottom,transparent 0 9px,#c3d4ee 9px 10px) 0 17px/100% 100% no-repeat,#fffef8;transform:rotate(-5deg);box-shadow:0 6px 14px rgba(10,20,40,.2)}
+.err{color:var(--no);font-weight:700;min-height:1.3em;margin:0 0 10px}
+.meter{height:10px;background:var(--line);border-radius:5px;overflow:hidden;margin:8px 0}
+.meter i{display:block;height:100%;width:0;background:var(--ok);transition:width .4s}
+.stat{display:flex;justify-content:space-between;gap:10px;color:var(--mut);font-size:.9rem;flex-wrap:wrap}
 </style>
 </head>
 <body>
 <main>
-<section id="v-list">
+<section id="v-auth" class="hide">
+  <div class="logo" aria-hidden="true"></div>
+  <h1 style="text-align:center">Vokabeln</h1>
+  <div class="panel">
+    <div class="tabs" role="tablist">
+      <button type="button" id="tin" class="on">Anmelden</button>
+      <button type="button" id="tup">Konto erstellen</button>
+    </div>
+    <form id="aform" novalidate>
+      <label for="aname" id="lname" style="display:block;font-weight:700;margin-bottom:6px">Name oder E-Mail</label>
+      <input type="text" id="aname" autocomplete="username" autocapitalize="none" spellcheck="false">
+      <div id="mailrow" class="hide">
+        <label for="amail" style="display:block;font-weight:700;margin-bottom:6px">E-Mail</label>
+        <input type="email" id="amail" autocomplete="email" autocapitalize="none" spellcheck="false">
+      </div>
+      <label for="apw" style="display:block;font-weight:700;margin-bottom:6px">Passwort</label>
+      <input type="password" id="apw" autocomplete="current-password">
+      <div id="pwrow" class="hide">
+        <label for="apw2" style="display:block;font-weight:700;margin-bottom:6px">Passwort wiederholen</label>
+        <input type="password" id="apw2" autocomplete="new-password">
+      </div>
+      <p class="err" id="aerr" role="alert"></p>
+      <button type="submit" id="asub" style="width:100%">Anmelden</button>
+    </form>
+    <p class="hint" style="text-align:left">Dein Konto und dein Fortschritt werden nur auf diesem Gerät in diesem Browser gespeichert. Es gibt keine Anmeldung auf anderen Geräten, und ein vergessenes Passwort kann nicht zurückgesetzt werden.</p>
+  </div>
+</section>
+
+<section id="v-list" class="hide">
+  <div class="top"><span id="who"></span><button class="sec sm" id="logout">Abmelden</button></div>
   <h1>Meine Karteikarten</h1>
+  <div class="panel" id="statbox">
+    <b>Dein Fortschritt</b>
+    <div class="meter" aria-hidden="true"><i id="mfill"></i></div>
+    <div class="stat"><span id="s1"></span><span id="s2"></span></div>
+  </div>
   <div class="panel">
     <b>Sprache</b>
     <select id="lang" aria-label="Sprache" style="margin-top:8px">
@@ -133,7 +175,13 @@ display:flex;flex-direction:column;align-items:center;justify-content:center;gap
     <div class="row" style="margin-top:10px"><button class="sec sm" id="clear" style="flex:none">Alle Karten löschen</button></div>
   </div>
   <button id="start" style="width:100%;font-size:1.05rem">Lernen starten</button>
+  <button class="sec hide" id="startweak" style="width:100%;margin-top:10px">Nur schwache Karten üben</button>
   <p class="hint" id="note"></p>
+  <details style="margin-top:18px">
+    <summary>Konto</summary>
+    <p id="acc" style="margin-top:0"></p>
+    <button class="sec sm" id="delacc">Konto und alle Karten löschen</button>
+  </details>
 </section>
 
 <section id="v-learn" class="hide">
@@ -170,13 +218,17 @@ display:flex;flex-direction:column;align-items:center;justify-content:center;gap
 <script>
 (function(){
 var $=function(i){return document.getElementById(i)};
-var cards=[],queue=[],wrong=[],set=[],total=0,done=0,okN=0,flipped=false,busy=false,curImg="",editId=null,mem={},lang="Englisch",LANGS=["Englisch","Spanisch","Französisch","Italienisch","Latein","Andere"];
+var user=null,USERS=[],meta={days:{}},authMode="in",cards=[],queue=[],wrong=[],set=[],total=0,done=0,okN=0,flipped=false,busy=false,curImg="",editId=null,mem={},lang="Englisch",LANGS=["Englisch","Spanisch","Französisch","Italienisch","Latein","Andere"];
 
 /* Speicher: IndexedDB mit Fallback */
 function dbo(){return new Promise(function(res,rej){try{var r=indexedDB.open("vokabeln",1);r.onupgradeneeded=function(){r.result.createObjectStore("kv")};r.onsuccess=function(){res(r.result)};r.onerror=function(){rej()}}catch(e){rej(e)}})}
 function kvGet(k){return dbo().then(function(d){return new Promise(function(res){var q=d.transaction("kv").objectStore("kv").get(k);q.onsuccess=function(){res(q.result)};q.onerror=function(){res(mem[k])}})}).catch(function(){return mem[k]})}
 function kvSet(k,v){mem[k]=v;return dbo().then(function(d){d.transaction("kv","readwrite").objectStore("kv").put(v,k)}).catch(function(){})}
-function persist(){kvSet("cards",cards)}
+function dkey(k){return "u:"+user.id+":"+k}
+var pt=null;
+function persist(){if(!user)return;clearTimeout(pt);pt=setTimeout(function(){kvSet(dkey("cards"),cards);kvSet(dkey("meta"),meta)},150)}
+function dayKey(t){var d=new Date(t||Date.now());return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2)}
+function learned(c){return (c.s||0)>=3}
 function cur(){return cards.filter(function(c){return c.lang===lang})}
 function lname(){return lang==="Andere"?"Fremdsprache":lang}
 function labels(){}
@@ -205,18 +257,20 @@ $("add").onclick=function(){
   persist();resetForm();render();$("fw").focus();
 };
 $("clear").onclick=function(){if(confirm("Wirklich alle "+lname()+"-Karten löschen?")){cards=cards.filter(function(c){return c.lang!==lang});persist();resetForm();render()}};
-$("lang").onchange=function(){lang=this.value;kvSet("lang",lang);labels();resetForm();render()};
+$("lang").onchange=function(){lang=this.value;if(user)kvSet(dkey("lang"),lang);labels();resetForm();render()};
 function render(){
   var L=cur();$("count").textContent=L.length+(L.length===1?" Karte":" Karten")+" ("+lname()+")";
   $("listbox").classList.toggle("hide",!L.length);
   $("start").disabled=!L.length;
+  var W=L.filter(function(c){return !learned(c)});$("startweak").classList.toggle("hide",!(W.length&&L.some(function(c){return c.r||c.w})));
+  renderStats(L);
   $("note").textContent=L.length?"":"Lege zuerst mindestens eine Karte an.";
   var box=$("items");box.innerHTML="";
   L.forEach(function(c){
     var d=document.createElement("div");d.className="item";
     if(c.img){var im=document.createElement("img");im.className="thumb";im.src=c.img;im.alt="";d.appendChild(im)}
     var t=document.createElement("div");t.className="t";
-    var b=document.createElement("b");b.textContent=c.f;var s=document.createElement("span");s.textContent=c.b;
+    var b=document.createElement("b");b.textContent=c.f;var s=document.createElement("span");s.textContent=c.b+((c.r||c.w)?"   ·   ✓"+(c.r||0)+"  ✗"+(c.w||0)+(learned(c)?"  · gelernt":""):"");
     t.appendChild(b);t.appendChild(s);d.appendChild(t);
     var e=document.createElement("button");e.className="sec sm";e.textContent="Ändern";
     e.onclick=function(){editId=c.id;$("fw").value=c.f;$("bw").value=c.b;$("side").value=c.side||"b";setImg(c.img);$("add").textContent="Änderung speichern";$("cancel").classList.remove("hide");window.scrollTo(0,0)};
@@ -225,7 +279,15 @@ function render(){
     d.appendChild(e);d.appendChild(x);box.appendChild(d);
   });
 }
-function show(id){["v-list","v-learn","v-end"].forEach(function(s){$(s).classList.toggle("hide",s!==id)});window.scrollTo(0,0)}
+function renderStats(L){
+  var n=L.length,g=L.filter(learned).length,t=meta.days[dayKey()]||0,st=0,d=new Date();
+  if(!meta.days[dayKey()])d.setDate(d.getDate()-1);
+  while(meta.days[dayKey(d)]){st++;d.setDate(d.getDate()-1)}
+  $("mfill").style.width=(n?g/n*100:0)+"%";
+  $("s1").textContent=g+" von "+n+" gelernt ("+lname()+")";
+  $("s2").textContent="Heute: "+t+" Antworten · Serie: "+st+(st===1?" Tag":" Tage");
+}
+function show(id){["v-auth","v-list","v-learn","v-end"].forEach(function(s){$(s).classList.toggle("hide",s!==id)});window.scrollTo(0,0)}
 function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
 
 /* Lernen */
@@ -256,12 +318,14 @@ function next(){
 function answer(ok){
   if(busy||!queue.length)return;busy=true;
   var c=queue.shift();if(ok)okN++;else wrong.push(c);done++;
+  c.r=(c.r||0)+(ok?1:0);c.w=(c.w||0)+(ok?0:1);c.s=ok?(c.s||0)+1:0;c.t=Date.now();
+  var dk=dayKey();meta.days[dk]=(meta.days[dk]||0)+1;persist();
   var el=$("card");el.classList.remove("drag");
   el.style.transform="translateX("+(ok?1:-1)*window.innerWidth+"px) rotate("+(ok?25:-25)+"deg)";el.style.opacity="0";
   setTimeout(next,240);
 }
 function finish(){
-  $("barfill").style.width="100%";show("v-end");
+  $("barfill").style.width="100%";show("v-end");persist();render();
   $("res").textContent=okN+" von "+total+" richtig"+(wrong.length?" – "+wrong.length+" noch offen.":". Alle gewusst!");
   $("again").classList.toggle("hide",!wrong.length);
 }
@@ -286,12 +350,13 @@ document.addEventListener("keydown",function(e){
   else if(e.key===" "||e.key==="ArrowUp"||e.key==="ArrowDown"){e.preventDefault();flip()}
 });
 $("start").onclick=function(){var L=cur();if(L.length)begin(L)};
+$("startweak").onclick=function(){var W=cur().filter(function(c){return !learned(c)});if(W.length)begin(W)};
 $("bok").onclick=function(){answer(true)};
 $("bno").onclick=function(){answer(false)};
-$("stop").onclick=function(){show("v-list")};
+$("stop").onclick=function(){persist();render();show("v-list")};
 $("again").onclick=function(){begin(wrong)};
 $("all").onclick=function(){begin(cur())};
-$("edit").onclick=function(){show("v-list")};
+$("edit").onclick=function(){render();show("v-list")};
 
 /* PARSER START */
 var DE={};("der die das den dem des ein eine einen einem einer eines und oder nicht sich ist sind war wird werden zu zum zur mit von vor bei auf aus für über unter nach im in am an um auch noch nur sehr man es er sie wir ihr ich du mein dein sein kein haben machen gehen kommen können müssen wollen etwas jemand jemanden jemandem etw jdn jdm").split(" ").forEach(function(w){DE[w]=1});
@@ -475,16 +540,93 @@ try{
   $("manifest").href=URL.createObjectURL(new Blob([JSON.stringify(mf)],{type:"application/manifest+json"}));
 }catch(e){}
 
-/* Start: Daten laden, ggf. alte Liste übernehmen */
-kvGet("cards").then(function(d){
-  cards=Array.isArray(d)?d:[];
-  if(!cards.length){try{var old=localStorage.getItem("vokabeln-liste-v1");if(old){old.split("\n").forEach(function(l){var m=l.split(/\s*(?:=|;|\t| - | – )\s*/);if(m.length>1&&m[0].trim()&&m[1].trim())cards.push({id:uid(),f:m[0].trim(),b:m.slice(1).join(" = ").trim(),img:"",side:"b"})});if(cards.length)persist()}}catch(e){}}
-  cards.forEach(function(c){if(!c.lang)c.lang="Englisch"});
-  return kvGet("lang");
-}).then(function(l){
-  if(l&&LANGS.indexOf(l)>-1)lang=l;
-  $("lang").value=lang;labels();render();bulkInfo();
+/* Konten (lokal auf diesem Gerät) */
+function b2h(buf){return Array.prototype.map.call(new Uint8Array(buf),function(x){return ("0"+x.toString(16)).slice(-2)}).join("")}
+function h2b(h){var a=new Uint8Array(h.length/2);for(var i=0;i<a.length;i++)a[i]=parseInt(h.substr(i*2,2),16);return a}
+function canHash(){return !!(window.crypto&&crypto.subtle&&window.TextEncoder)}
+function hashPw(pw,saltHex){
+  return crypto.subtle.importKey("raw",new TextEncoder().encode(pw),"PBKDF2",false,["deriveBits"]).then(function(k){
+    return crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",salt:h2b(saltHex),iterations:150000},k,256)}).then(b2h);
+}
+function aerr(t){$("aerr").textContent=t||""}
+function setMode(m){
+  authMode=m;aerr("");
+  $("tin").classList.toggle("on",m==="in");$("tup").classList.toggle("on",m==="up");
+  $("mailrow").classList.toggle("hide",m==="in");$("pwrow").classList.toggle("hide",m==="in");
+  $("lname").textContent=m==="in"?"Name oder E-Mail":"Name";
+  $("apw").setAttribute("autocomplete",m==="in"?"current-password":"new-password");
+  $("asub").textContent=m==="in"?"Anmelden":"Konto erstellen";
+}
+$("tin").onclick=function(){setMode("in")};
+$("tup").onclick=function(){setMode("up")};
+function saveSession(id){kvSet("session",id);try{if(id)localStorage.setItem("vokabeln-session",id);else localStorage.removeItem("vokabeln-session")}catch(e){}}
+function openUser(u){
+  user=u;saveSession(u.id);
+  return Promise.all([kvGet(dkey("cards")),kvGet(dkey("lang")),kvGet(dkey("meta"))]).then(function(r){
+    cards=Array.isArray(r[0])?r[0]:[];cards.forEach(function(c){if(!c.lang)c.lang="Englisch"});
+    lang=(r[1]&&LANGS.indexOf(r[1])>-1)?r[1]:"Englisch";
+    meta=(r[2]&&r[2].days)?r[2]:{days:{}};
+    $("lang").value=lang;$("who").textContent="Angemeldet als "+u.name;
+    $("acc").textContent="Konto: "+u.name+" ("+u.email+")";
+    resetForm();render();show("v-list");
+  });
+}
+$("aform").addEventListener("submit",function(e){
+  e.preventDefault();aerr("");
+  if(!canHash()){aerr("Dieser Browser unterstützt keine sichere Passwort-Speicherung. Öffne die Seite über https.");return}
+  var name=$("aname").value.trim(),pw=$("apw").value,btn=$("asub");
+  if(!name||!pw){aerr(authMode==="in"?"Bitte Name und Passwort eingeben.":"Bitte alle Felder ausfüllen.");return}
+  btn.disabled=true;
+  var done=function(){btn.disabled=false};
+  if(authMode==="in"){
+    var q=name.toLowerCase(),u=USERS.filter(function(x){return x.name.toLowerCase()===q||x.email===q})[0];
+    if(!u){hashPw(pw,"00112233445566778899aabbccddeeff").then(function(){aerr("Name oder Passwort stimmt nicht.");done()});return}
+    hashPw(pw,u.salt).then(function(h){
+      if(h!==u.hash){aerr("Name oder Passwort stimmt nicht.");done();return}
+      $("apw").value="";return openUser(u).then(done);
+    }).catch(function(){aerr("Anmeldung fehlgeschlagen.");done()});
+    return;
+  }
+  var mail=$("amail").value.trim().toLowerCase(),pw2=$("apw2").value;
+  if(name.length<2){aerr("Der Name braucht mindestens 2 Zeichen.");done();return}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(mail)){aerr("Bitte eine gültige E-Mail-Adresse eingeben.");done();return}
+  if(pw.length<6){aerr("Das Passwort braucht mindestens 6 Zeichen.");done();return}
+  if(pw!==pw2){aerr("Die Passwörter sind nicht gleich.");done();return}
+  if(USERS.some(function(x){return x.name.toLowerCase()===name.toLowerCase()})){aerr("Dieser Name ist schon vergeben.");done();return}
+  if(USERS.some(function(x){return x.email===mail})){aerr("Diese E-Mail ist schon registriert.");done();return}
+  var salt=b2h(crypto.getRandomValues(new Uint8Array(16)));
+  hashPw(pw,salt).then(function(h){
+    var u={id:uid(),name:name,email:mail,salt:salt,hash:h,created:Date.now()},first=!USERS.length;
+    USERS.push(u);kvSet("users",USERS);
+    var p=Promise.resolve();
+    if(first){p=kvGet("cards").then(function(old){if(Array.isArray(old)&&old.length)return kvSet("u:"+u.id+":cards",old)})}
+    return p.then(function(){$("apw").value="";$("apw2").value="";return openUser(u)});
+  }).then(done).catch(function(){aerr("Das Konto konnte nicht erstellt werden.");done()});
 });
+$("logout").onclick=function(){
+  persist();clearTimeout(pt);
+  var u=user;if(u){kvSet(dkey("cards"),cards);kvSet(dkey("meta"),meta)}
+  user=null;cards=[];saveSession("");
+  $("aname").value="";$("apw").value="";setMode("in");show("v-auth");
+};
+$("delacc").onclick=function(){
+  if(!user||!confirm("Konto \""+user.name+"\" und alle Karten und den Fortschritt unwiderruflich löschen?"))return;
+  var id=user.id;clearTimeout(pt);
+  kvSet("u:"+id+":cards",[]);kvSet("u:"+id+":meta",null);kvSet("u:"+id+":lang",null);
+  USERS=USERS.filter(function(x){return x.id!==id});kvSet("users",USERS);
+  user=null;cards=[];saveSession("");setMode(USERS.length?"in":"up");show("v-auth");
+};
+
+/* Start */
+kvGet("users").then(function(u){
+  USERS=Array.isArray(u)?u:[];
+  return kvGet("session");
+}).then(function(id){
+  if(!id){try{id=localStorage.getItem("vokabeln-session")}catch(e){}}
+  var u=id&&USERS.filter(function(x){return x.id===id})[0];
+  if(u)return openUser(u);
+  setMode(USERS.length?"in":"up");show("v-auth");
+}).catch(function(){setMode("up");show("v-auth")});
 })();
 </script>
 </body>
